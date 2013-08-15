@@ -1,0 +1,263 @@
+--- Android.mk	2013-05-21 12:33:00.856085892 +0800
++++ Android.mk	2013-05-21 12:18:35.793073419 +0800
+@@ -91,12 +91,7 @@
+ 	core/java/android/bluetooth/IBluetoothCallback.aidl \
+ 	core/java/android/bluetooth/IBluetoothHeadset.aidl \
+ 	core/java/android/bluetooth/IBluetoothHeadsetPhone.aidl \
+-	core/java/android/bluetooth/IBluetoothHealth.aidl \
+ 	core/java/android/bluetooth/IBluetoothHealthCallback.aidl \
+-	core/java/android/bluetooth/IBluetoothInputDevice.aidl \
+-	core/java/android/bluetooth/IBluetoothPan.aidl \
+-	core/java/android/bluetooth/IBluetoothManager.aidl \
+-	core/java/android/bluetooth/IBluetoothManagerCallback.aidl \
+ 	core/java/android/bluetooth/IBluetoothPbap.aidl \
+ 	core/java/android/bluetooth/IBluetoothStateChangeCallback.aidl \
+ 	core/java/android/content/IClipboard.aidl \
+--- core/java/com/android/internal/util/StateMachine.java	2013-05-21 12:33:00.915084810 +0800
++++ core/java/com/android/internal/util/StateMachine.java	2013-05-14 12:21:45.000000000 +0800
+@@ -423,7 +423,7 @@
+     private String mName;
+ 
+     /** Message.what value when quitting */
+-    private static final int SM_QUIT_CMD = -1;
++    public static final int SM_QUIT_CMD = -1;
+ 
+     /** Message.what value when initializing */
+     private static final int SM_INIT_CMD = -2;
+@@ -1150,7 +1150,7 @@
+         }
+ 
+         /** @see StateMachine#quit() */
+-        private final void quit() {
++        public final void quit() {
+             if (mDbg) Log.d(TAG, "quit:");
+             sendMessage(obtainMessage(SM_QUIT_CMD, mSmHandlerObj));
+         }
+@@ -1587,7 +1587,7 @@
+     /**
+      * Quit the state machine after all currently queued up messages are processed.
+      */
+-    protected final void quit() {
++    public final void quit() {
+         // mSmHandler can be null if the state machine is already stopped.
+         if (mSmHandler == null) return;
+ 
+--- core/jni/Android.mk	2013-05-21 12:33:00.916084792 +0800
++++ core/jni/Android.mk	2013-05-14 12:21:45.000000000 +0800
+@@ -138,6 +138,14 @@
+ 	android_util_FileObserver.cpp \
+ 	android/opengl/poly_clip.cpp.arm \
+ 	android/opengl/util.cpp.arm \
++	android_bluetooth_HeadsetBase.cpp \
++	android_bluetooth_common.cpp \
++	android_bluetooth_BluetoothAudioGateway.cpp \
++	android_bluetooth_BluetoothSocket.cpp \
++	android_bluetooth_c.c \
++	android_server_BluetoothService.cpp \
++	android_server_BluetoothEventLoop.cpp \
++	android_server_BluetoothA2dpService.cpp \
+ 	android_server_NetworkManagementSocketTagger.cpp \
+ 	android_server_Watchdog.cpp \
+ 	android_ddm_DdmHandleNativeHeap.cpp \
+@@ -219,6 +227,14 @@
+ 	libharfbuzz \
+ 	libz
+ 
++ifeq ($(BOARD_HAVE_BLUETOOTH),true)
++LOCAL_C_INCLUDES += \
++	external/dbus \
++	system/bluetooth/bluez-clean-headers
++LOCAL_CFLAGS += -DHAVE_BLUETOOTH
++LOCAL_SHARED_LIBRARIES += libbluedroid libdbus
++endif
++
+ ifeq ($(HAVE_SELINUX),true)
+ LOCAL_C_INCLUDES += external/libselinux/include
+ LOCAL_SHARED_LIBRARIES += libselinux
+--- core/jni/AndroidRuntime.cpp	2013-05-21 12:33:00.917084773 +0800
++++ core/jni/AndroidRuntime.cpp	2013-05-14 12:21:45.000000000 +0800
+@@ -149,6 +149,14 @@
+ extern int register_android_text_AndroidCharacter(JNIEnv *env);
+ extern int register_android_text_AndroidBidi(JNIEnv *env);
+ extern int register_android_opengl_classes(JNIEnv *env);
++//vuk
++extern int register_android_bluetooth_HeadsetBase(JNIEnv* env);
++extern int register_android_bluetooth_BluetoothAudioGateway(JNIEnv* env);
++extern int register_android_bluetooth_BluetoothSocket(JNIEnv *env);
++extern int register_android_server_BluetoothService(JNIEnv* env);
++extern int register_android_server_BluetoothEventLoop(JNIEnv *env);
++extern int register_android_server_BluetoothA2dpService(JNIEnv* env);
++
+ extern int register_android_server_NetworkManagementSocketTagger(JNIEnv* env);
+ extern int register_android_server_Watchdog(JNIEnv* env);
+ extern int register_android_ddm_DdmHandleNativeHeap(JNIEnv *env);
+@@ -1194,6 +1202,13 @@
+     REG_JNI(register_android_media_ToneGenerator),
+ 
+     REG_JNI(register_android_opengl_classes),
++    REG_JNI(register_android_bluetooth_HeadsetBase),
++    REG_JNI(register_android_bluetooth_BluetoothAudioGateway),
++    REG_JNI(register_android_bluetooth_BluetoothSocket),
++    REG_JNI(register_android_server_BluetoothService),
++    REG_JNI(register_android_server_BluetoothEventLoop),
++    REG_JNI(register_android_server_BluetoothA2dpService),
++
+     REG_JNI(register_android_server_NetworkManagementSocketTagger),
+     REG_JNI(register_android_server_Watchdog),
+     REG_JNI(register_android_ddm_DdmHandleNativeHeap),
+--- core/res/res/values/config.xml	2013-05-21 12:33:00.943084294 +0800
++++ core/res/res/values/config.xml	2013-05-21 12:18:30.112179305 +0800
+@@ -672,6 +672,7 @@
+     <!-- Boolean indicating if current platform supports bluetooth SCO for off call
+     use cases -->
+     <bool name="config_bluetooth_sco_off_call">true</bool>
++    <bool name="config_bluetooth_adapter_quick_switch">false</bool>
+ 
+     <!-- Boolean indicating if current platform supports bluetooth wide band
+          speech -->
+--- core/res/res/values/symbols.xml	2013-05-21 12:33:00.967083850 +0800
++++ core/res/res/values/symbols.xml	2013-05-21 12:18:23.443303608 +0800
+@@ -1836,6 +1836,20 @@
+    =============================================================== -->
+   <eat-comment />
+ 
++   <java-symbol type="bool" name="config_bluetooth_adapter_quick_switch" />
++   <java-symbol type="array" name="avrcp_meta_changed_intents" />
++   <java-symbol type="array" name="avrcp_playstate_changed_intents" />
++   <java-symbol type="array" name="avrcp_special_extra_keys" />
++   <java-symbol type="array" name="avrcp_overridable_extra_keys" />
++   <java-symbol type="string" name="com.amazon.mp3.metachanged_track" />
++   <java-symbol type="string" name="com.amazon.mp3.metachanged_artist" />
++   <java-symbol type="string" name="com.amazon.mp3.metachanged_album" />
++   <java-symbol type="string" name="com.amazon.mp3.metachanged_id" />
++   <java-symbol type="string" name="com.amazon.mp3.playstatechanged_track" />
++   <java-symbol type="string" name="com.amazon.mp3.playstatechanged_artist" />
++   <java-symbol type="string" name="com.amazon.mp3.playstatechanged_album" />
++   <java-symbol type="string" name="com.amazon.mp3.playstatechanged_id" />
++
+   <!-- Config.xml entries -->
+   <java-symbol type="bool" name="config_forceDisableHardwareKeyboard" />
+   <java-symbol type="bool" name="config_hasRotationLockSwitch" />
+--- services/java/com/android/server/NetworkManagementService.java	2013-05-21 12:33:01.003083186 +0800
++++ services/java/com/android/server/NetworkManagementService.java	2013-05-14 12:21:45.000000000 +0800
+@@ -851,7 +851,8 @@
+         } catch (NativeDaemonConnectorException e) {
+             throw new IllegalStateException("Unable to communicate to native daemon");
+         }
+-        BluetoothTetheringDataTracker.getInstance().startReverseTether(iface);
++//-vuk
++//        BluetoothTetheringDataTracker.getInstance().startReverseTether(iface);
+ 
+     }
+ 
+@@ -863,7 +864,7 @@
+         } catch (NativeDaemonConnectorException e) {
+             throw new IllegalStateException("Unable to communicate to native daemon to stop tether");
+         }
+-        BluetoothTetheringDataTracker.getInstance().stopReverseTether();
++//-vuk        BluetoothTetheringDataTracker.getInstance().stopReverseTether();
+     }
+ 
+     @Override
+--- services/java/com/android/server/power/ShutdownThread.java	2013-05-21 12:33:01.016082946 +0800
++++ services/java/com/android/server/power/ShutdownThread.java	2013-05-14 12:21:45.000000000 +0800
+@@ -24,7 +24,7 @@
+ import android.app.KeyguardManager;
+ import android.app.ProgressDialog;
+ import android.bluetooth.BluetoothAdapter;
+-import android.bluetooth.IBluetoothManager;
++import android.bluetooth.IBluetooth;
+ import android.nfc.NfcAdapter;
+ import android.nfc.INfcAdapter;
+ import android.content.BroadcastReceiver;
+@@ -465,9 +465,10 @@
+                         INfcAdapter.Stub.asInterface(ServiceManager.checkService("nfc"));
+                 final ITelephony phone =
+                         ITelephony.Stub.asInterface(ServiceManager.checkService("phone"));
+-                final IBluetoothManager bluetooth =
+-                        IBluetoothManager.Stub.asInterface(ServiceManager.checkService(
+-                                BluetoothAdapter.BLUETOOTH_MANAGER_SERVICE));
++                 final IBluetooth bluetooth =
++                         IBluetooth.Stub.asInterface(ServiceManager.checkService(
++                                 BluetoothAdapter.BLUETOOTH_SERVICE));
++
+ 
+                 try {
+                     nfcOff = nfc == null ||
+--- services/java/com/android/server/SystemServer.java	2013-05-21 12:33:01.016082946 +0800
++++ services/java/com/android/server/SystemServer.java	2013-05-21 12:18:17.128421316 +0800
+@@ -43,6 +43,10 @@
+ import android.os.SystemProperties;
+ import android.os.UserHandle;
+ import android.provider.Settings;
++//-vuk
++import android.server.BluetoothA2dpService;
++import android.server.BluetoothService;
++//-
+ import android.server.search.SearchManagerService;
+ import android.service.dreams.DreamService;
+ import android.util.DisplayMetrics;
+@@ -162,7 +166,11 @@
+         IPackageManager pm = null;
+         Context context = null;
+         WindowManagerService wm = null;
+-        BluetoothManagerService bluetooth = null;
++//-vuk
++        BluetoothService bluetooth = null;
++        BluetoothA2dpService bluetoothA2dp = null;
++//        BluetoothManagerService bluetooth = null;
++//-
+         DockObserver dock = null;
+         RotationSwitchObserver rotateSwitch = null;
+         UsbService usb = null;
+@@ -360,8 +368,26 @@
+                 Slog.i(TAG, "No Bluetooth Service (factory test)");
+             } else {
+                 Slog.i(TAG, "Bluetooth Manager Service");
+-                bluetooth = new BluetoothManagerService(context);
+-                ServiceManager.addService(BluetoothAdapter.BLUETOOTH_MANAGER_SERVICE, bluetooth);
++//                bluetooth = new BluetoothManagerService(context);
++//                ServiceManager.addService(BluetoothAdapter.BLUETOOTH_MANAGER_SERVICE, bluetooth);
++//--vuk
++                bluetooth = new BluetoothService(context);
++                ServiceManager.addService(BluetoothAdapter.BLUETOOTH_SERVICE, bluetooth);
++                bluetooth.initAfterRegistration();
++
++                if (!"0".equals(SystemProperties.get("system_init.startaudioservice"))) {
++                    bluetoothA2dp = new BluetoothA2dpService(context, bluetooth);
++                    ServiceManager.addService(BluetoothA2dpService.BLUETOOTH_A2DP_SERVICE,
++                                              bluetoothA2dp);
++                    bluetooth.initAfterA2dpRegistration();
++                }
++
++                int bluetoothOn = Settings.Secure.getInt(mContentResolver,
++                    Settings.Secure.BLUETOOTH_ON, 0);
++                if (bluetoothOn != 0) {
++                    bluetooth.enable();
++                }
++//--
+             }
+ 
+         } catch (RuntimeException e) {
+@@ -966,6 +992,9 @@
+         final StatusBarManagerService statusBarF = statusBar;
+         final DreamManagerService dreamyF = dreamy;
+         final InputManagerService inputManagerF = inputManager;
++//-vuk
++        final BluetoothService bluetoothF = bluetooth;
++
+         final TelephonyRegistry telephonyRegistryF = telephonyRegistry;
+ 
+         // We now tell the activity manager it is okay to run third party
+@@ -1095,7 +1124,11 @@
+                 }
+                 try {
+                     // TODO(BT) Pass parameter to input manager
++//-vuk
+                     if (inputManagerF != null) inputManagerF.systemReady();
++//-
++//                    if (inputManagerF != null) inputManagerF.systemReady(bluetoothF);
++
+                 } catch (Throwable e) {
+                     reportWtf("making InputManagerService ready", e);
+                 }
