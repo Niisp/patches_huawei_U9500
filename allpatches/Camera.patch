@@ -2,7 +2,7 @@ diff --git a/src/com/android/camera/Util.java b/src/com/android/camera/Util.java
 index 60efc60..2d6d80d 100644
 --- a/src/com/android/camera/Util.java
 +++ b/src/com/android/camera/Util.java
-@@ -940,6 +940,11 @@
+@@ -939,6 +939,11 @@
          // Clear previous GPS location from the parameters.
          parameters.removeGpsData();
  
@@ -13,4 +13,3 @@ index 60efc60..2d6d80d 100644
 +	}
          // We always encode GpsTimeStamp
          parameters.setGpsTimestamp(System.currentTimeMillis() / 1000);
- 
