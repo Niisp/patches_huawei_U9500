@@ -26,6 +26,7 @@ case "$DISTR" in
   "PAC-man - The AIO ROM")
     echo "---=== PAC-man - The AIO ROM ===---"
     bluez_port_pac/pac_bluez_patch.sh $DSTDIR
+    cp -f allpatches/cm_frameworks_config_overlay.xml $DSTDIR/vendor/cm/overlay/common/frameworks/base/core/res/res/values/config.xml
     ;;
   *)
     echo "*================== Error!!! =================*"
