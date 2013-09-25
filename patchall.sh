@@ -18,6 +18,13 @@ case "$DISTR" in
   "CyanogenMod")
     echo "---=== CyanogenMod ===---"
     bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
+
+    # Show Network Speed patch
+    echo ""
+    echo "${grn}Applying Show Network Speed patch (by realmenvvs 4pda)${txtrst}"
+    cp  allpatches/traffic/Traffic.java $DSTDIR/frameworks/base/packages/SystemUI/src/com/android/systemui/statusbar/policy
+    cat allpatches/traffic/traffic.patch | patch -d $DSTDIR -p1 -N -r -
+
     ;;
   "MoKee OpenSource")
     echo "---=== MoKee OpenSource ===---"

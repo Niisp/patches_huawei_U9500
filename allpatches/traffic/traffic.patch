@@ -1,0 +1,164 @@
+diff --git a/frameworks/base/core/java/android/provider/Settings.java b/frameworks/base/core/java/android/provider/Settings.java
+index a28f9ab..6461c72 100644
+--- a/frameworks/base/core/java/android/provider/Settings.java
++++ b/frameworks/base/core/java/android/provider/Settings.java
+@@ -2765,6 +2765,9 @@ public final class Settings {
+          */
+         public static final String STATUS_BAR_SIGNAL_TEXT = "status_bar_signal";
+ 
++
++        public static final String STATUS_BAR_TRAFFIC = "status_bar_traffic";
++
+          /**
+          * Whether to control brightness from status bar
+          *
+diff --git a/frameworks/base/packages/SystemUI/res/layout/status_bar.xml b/frameworks/base/packages/SystemUI/res/layout/status_bar.xml
+index deada5d..aff3023 100644
+--- a/frameworks/base/packages/SystemUI/res/layout/status_bar.xml
++++ b/frameworks/base/packages/SystemUI/res/layout/status_bar.xml
+@@ -76,7 +76,14 @@
+             android:layout_width="wrap_content"
+             android:layout_height="match_parent"
+             android:orientation="horizontal">
+-
++                <com.android.systemui.statusbar.policy.Traffic
++                android:id="@+id/traffic"
++                android:textAppearance="@style/TextAppearance.StatusBar.Traffic"
++                android:layout_width="wrap_content"
++                android:layout_height="match_parent"
++                android:layout_marginRight="2dp"
++                android:gravity="left|center_vertical"
++                />
+            <LinearLayout android:id="@+id/statusIcons"
+                 android:layout_width="wrap_content"
+                 android:layout_height="match_parent"
+diff --git a/frameworks/base/packages/SystemUI/res/values/styles.xml b/frameworks/base/packages/SystemUI/res/values/styles.xml
+index cd108b1..f987f95 100644
+--- a/frameworks/base/packages/SystemUI/res/values/styles.xml
++++ b/frameworks/base/packages/SystemUI/res/values/styles.xml
+@@ -19,6 +19,12 @@
+     <style name="RecentsStyle" parent="@android:style/Theme.Holo.Wallpaper.NoTitleBar">
+         <item name="android:windowAnimationStyle">@style/Animation.RecentsActivity</item>
+     </style>
++   <style name="TextAppearance.StatusBar.Traffic" parent="@*android:style/TextAppearance.StatusBar.Icon">
++        <!-- Note: must be dp to fit in status bar -->
++        <item name="android:textSize">14dp</item>
++        <item name="android:textStyle">normal</item>
++        <item name="android:textColor">@android:color/holo_blue_light</item>
++    </style>
+ 
+     <!-- Animations for a non-full-screen window or activity. -->
+     <style name="Animation.RecentsActivity" parent="@android:style/Animation.Activity">
+diff --git a/packages/apps/Settings/src/com/android/settings/cyanogenmod/StatusBar.java b/packages/apps/Settings/src/com/android/settings/cyanogenmod/StatusBar.java
+index 3f059bf..cbf8026 100644
+--- a/packages/apps/Settings/src/com/android/settings/cyanogenmod/StatusBar.java
++++ b/packages/apps/Settings/src/com/android/settings/cyanogenmod/StatusBar.java
+@@ -43,14 +43,14 @@ public class StatusBar extends SettingsPreferenceFragment implements OnPreferenc
+     private static final String STATUS_BAR_SIGNAL = "status_bar_signal";
+     private static final String STATUS_BAR_NOTIF_COUNT = "status_bar_notif_count";
+     private static final String STATUS_BAR_CATEGORY_GENERAL = "status_bar_general";
+-
++    private static final String STATUS_BAR_TRAFFIC = "status_bar_traffic";
+     private ListPreference mStatusBarAmPm;
+     private ListPreference mStatusBarBattery;
+     private ListPreference mStatusBarCmSignal;
+     private CheckBoxPreference mStatusBarClock;
+     private CheckBoxPreference mStatusBarBrightnessControl;
+     private CheckBoxPreference mStatusBarNotifCount;
+-
++    private CheckBoxPreference mStatusBarTraffic;
+     @Override
+     public void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+@@ -65,7 +65,7 @@ public class StatusBar extends SettingsPreferenceFragment implements OnPreferenc
+         mStatusBarAmPm = (ListPreference) prefSet.findPreference(STATUS_BAR_AM_PM);
+         mStatusBarBattery = (ListPreference) prefSet.findPreference(STATUS_BAR_BATTERY);
+         mStatusBarCmSignal = (ListPreference) prefSet.findPreference(STATUS_BAR_SIGNAL);
+-
++        mStatusBarTraffic = (CheckBoxPreference) prefSet.findPreference(STATUS_BAR_TRAFFIC);
+         mStatusBarClock.setChecked(Settings.System.getInt(resolver, Settings.System.STATUS_BAR_CLOCK, 1) == 1);
+         mStatusBarClock.setOnPreferenceChangeListener(this);
+ 
+@@ -81,7 +81,9 @@ public class StatusBar extends SettingsPreferenceFragment implements OnPreferenc
+             mStatusBarAmPm.setSummary(mStatusBarAmPm.getEntry());
+             mStatusBarAmPm.setOnPreferenceChangeListener(this);
+         }
+-
++        mStatusBarTraffic.setChecked((Settings.System.getInt(resolver,
++                Settings.System.STATUS_BAR_TRAFFIC, 0) == 1));
++        mStatusBarTraffic.setOnPreferenceChangeListener(this);
+         mStatusBarBrightnessControl.setChecked(Settings.System.getInt(resolver,
+                 Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL, 0) == 1);
+         mStatusBarBrightnessControl.setOnPreferenceChangeListener(this);
+@@ -152,6 +154,11 @@ public class StatusBar extends SettingsPreferenceFragment implements OnPreferenc
+             Settings.System.putInt(resolver,
+                     Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL, value ? 1 : 0);
+             return true;
++        } else if (preference == mStatusBarTraffic) {
++            boolean value = (Boolean) newValue;
++            Settings.System.putInt(resolver,
++                    Settings.System.STATUS_BAR_TRAFFIC, value ? 1 : 0);
++            return true; 
+         } else if (preference == mStatusBarNotifCount) {
+             boolean value = (Boolean) newValue;
+             Settings.System.putInt(resolver, Settings.System.STATUS_BAR_NOTIF_COUNT, value ? 1 : 0);
+diff --git a/packages/apps/Settings/res/values-ru/cm_strings.xml b/packages/apps/Settings/res/values-ru/cm_strings.xml
+index 4cd85b5..916623e 100644
+--- a/packages/apps/Settings/res/values-ru/cm_strings.xml
++++ b/packages/apps/Settings/res/values-ru/cm_strings.xml
+@@ -14,7 +14,8 @@
+      limitations under the License.
+ -->
+ <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+-
++<string name="show_network_speed_title">Скорость сети</string>
++<string name="show_network_speed_summary">Показывать скорость в статус баре</string>
+     <!-- Quiet hours -->
+     <string name="quiet_hours_title">Тихие часы</string>
+     <string name="quiet_hours_summary">Настройка часов, когда устройство должно быть тихим</string>
+diff --git a/packages/apps/Settings/res/xml/status_bar.xml b/packages/apps/Settings/res/xml/status_bar.xml
+index 9dc45e4..f0ff6d8 100644
+--- a/packages/apps/Settings/res/xml/status_bar.xml
++++ b/packages/apps/Settings/res/xml/status_bar.xml
+@@ -54,6 +54,12 @@
+             android:title="@string/status_bar_signal_text_title"
+             android:entries="@array/entries_status_bar_signal"
+             android:entryValues="@array/values_status_bar_signal" />
++        
++        <CheckBoxPreference
++            android:key="status_bar_traffic"
++            android:title="@string/show_network_speed_title"
++            android:summary="@string/show_network_speed_summary"
++            android:defaultValue="false" />
+ 
+         <CheckBoxPreference
+             android:key="status_bar_brightness_control"
+diff --git a/packages/apps/Settings/res/values/cm_strings.xml b/packages/apps/Settings/res/values/cm_strings.xml
+index 400f82e..d5e9cab 100644
+--- a/packages/apps/Settings/res/values/cm_strings.xml
++++ b/packages/apps/Settings/res/values/cm_strings.xml
+@@ -69,7 +69,7 @@
+     <string name="headset_category_title">Headset</string>
+ 
+     <string name="ok">OK</string>
+-
++<string name="show_network_speed_title">Network speed</string>
+     <!-- Quiet hours -->
+     <string name="quiet_hours_title">Quiet hours</string>
+     <string name="quiet_hours_summary">Configure the hours the device should be quiet</string>
+@@ -984,7 +984,7 @@ two in order to insert additional control points. \'Remove\' deletes the selecte
+ 
+     <!-- Delete apn confirmation dialog message -->
+     <string name="confirm_delete_apn">The APN will be deleted.</string>
+-
++    <string name="show_network_speed_summary">Show network speed in status bar</string>
+     <!-- Privacy Guard -->
+     <string name="privacy_guard_switch_label">Enable Privacy Guard</string>
+     <string name="privacy_guard_dlg_title">Enable Privacy Guard?</string>
+@@ -1001,5 +1001,5 @@ two in order to insert additional control points. \'Remove\' deletes the selecte
+     <string name="privacy_guard_help_text">In this screen you can choose for which apps Privacy Guard should be active by simply tapping on them. Selected apps will not be able to access your personal data, such as contacts, messages or call logs. Long pressing on an entry opens the app details screen for that app.\n\nBy default built-in apps are not shown. If you want to show them or filter apps to show only the ones requesting access to personal data by their permissions, select the respective options in the menu.</string>
+     <string name="privacy_guard_manager_show_system_apps">Show built-in apps</string>
+     <string name="privacy_guard_manager_filter_permissions">Permission filter</string>
+-
++ 
+ </resources>
