@@ -8,15 +8,19 @@ then
     exit 1
 fi
 
+red=$(tput setaf 1) # Red
+grn=$(tput setaf 2) # Green
+txtrst=$(tput sgr0) # Reset
+
 # back port bluez
 echo ""
-echo "Back porting bluez"
+echo "${grn}Back porting bluez${txtrst}"
 
 DISTR=`head -1 $DSTDIR/.repo/manifests/README.*`
 
 case "$DISTR" in
   "CyanogenMod")
-    echo "---=== CyanogenMod ===---"
+    echo "${grn}---=== CyanogenMod ===---${txtrst}"
     bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
 
     # Show Network Speed patch
@@ -27,51 +31,55 @@ case "$DISTR" in
 
     ;;
   "MoKee OpenSource")
-    echo "---=== MoKee OpenSource ===---"
+    echo "${grn}---=== MoKee OpenSource ===---${txtrst}"
     bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
     ;;
   "PAC-man - The AIO ROM")
-    echo "---=== PAC-man - The AIO ROM ===---"
+    echo "${grn}---=== PAC-man - The AIO ROM ===---${txtrst}"
     bluez_port_pac/pac_bluez_patch.sh $DSTDIR
     cp -f allpatches/cm_frameworks_config_overlay.xml $DSTDIR/vendor/cm/overlay/common/frameworks/base/core/res/res/values/config.xml
     ;;
+  "ChameleonOS")
+    echo "${grn}---=== ChameleonOS ===---${txtrst}"
+    bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
+    ;;
   *)
-    echo "*================== Error!!! =================*"
+    echo "${red}*================== Error!!! ================*"
     echo "| Who is here? I do not know what the system |"
-    echo "*============================================*"
+    echo "*============================================*${txtrst}"
     exit 1
   ;;
 esac
 
 # AudioRecord patch
 echo ""
-echo "Applying AudioRecord patch"
+echo "${grn}Applying AudioRecord patch${txtrst}"
 cat allpatches/AudioRecord.patch | patch -d $DSTDIR/frameworks/av/ -p1 -N -r -
 
 # Adding caller geo info database
 echo ""
-echo "Adding CallerGeoInfo data"
+echo "${grn}Adding CallerGeoInfo data${txtrst}"
 cp allpatches/geoloc/86_zh $DSTDIR/external/libphonenumber/java/src/com/android/i18n/phonenumbers/geocoding/data/86_zh
 cp allpatches/geoloc/PhoneNumberMetadataProto_CN $DSTDIR/external/libphonenumber/java/src/com/android/i18n/phonenumbers/data/PhoneNumberMetadataProto_CN
 
 # EMUI Gallery/Camera patch
 echo ""
-echo "Applying EMUI Gallery/Camera patch"
+echo "${grn}Applying EMUI Gallery/Camera patch${txtrst}"
 cat allpatches/EMUI_Gallery2.patch | patch -d $DSTDIR/frameworks/base -p1 -N -r -
 
 # Camera patch
 echo ""
-echo "Applying Camera patch"
+echo "${grn}Applying Camera patch${txtrst}"
 cat allpatches/Camera.patch | patch -d $DSTDIR/packages/apps/Camera -p1 -N -r -
 
 # SurfaceFlinger patch
 echo ""
-echo "Applying SurfaceFlinger patch"
+echo "${grn}Applying SurfaceFlinger patch${txtrst}"
 cat allpatches/SurfaceFlinger.patch | patch -d $DSTDIR/frameworks/native -p1 -N -r -
 
 # if not removed - there will be errors
 echo ""
-echo "Remove *.orig files"
+echo "${grn}Remove *.orig files${txtrst}"
 rm -f $DSTDIR/frameworks/base/core/res/res/values/*.orig
 
-echo "Done"
+echo "${grn}Done${txtrst}"
