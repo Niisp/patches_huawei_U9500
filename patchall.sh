@@ -81,5 +81,6 @@ cat allpatches/SurfaceFlinger.patch | patch -d $DSTDIR/frameworks/native -p1 -N 
 echo ""
 echo "${grn}Remove *.orig files${txtrst}"
 rm -f $DSTDIR/frameworks/base/core/res/res/values/*.orig
+rm -f $DSTDIR/frameworks/base/packages/SystemUI/res/layout/*.orig
 
 echo "${grn}Done${txtrst}"
