@@ -1,4 +1,5 @@
 #!/bin/bash
+
 cd `dirname $0`
 DSTDIR=$1
 
@@ -76,6 +77,11 @@ cat allpatches/Camera.patch | patch -d $DSTDIR/packages/apps/Camera -p1 -N -r -
 echo ""
 echo "${grn}Applying SurfaceFlinger patch${txtrst}"
 cat allpatches/SurfaceFlinger.patch | patch -d $DSTDIR/frameworks/native -p1 -N -r -
+
+# WiFi Country patch
+echo ""
+echo "${grn}Applying WiFi Country patch${txtrst}"
+cat allpatches/WiFi_Country.patch | patch -d $DSTDIR/frameworks/opt/telephony -p1 -N -r -
 
 # if not removed - there will be errors
 echo ""
