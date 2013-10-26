@@ -30,6 +30,11 @@ case "$DISTR" in
     cp  allpatches/traffic/Traffic.java $DSTDIR/frameworks/base/packages/SystemUI/src/com/android/systemui/statusbar/policy
     cat allpatches/traffic/traffic.patch | patch -d $DSTDIR -p1 -N -r -
 
+    # Allowed to provide the name CM_BUILDTYPE
+    echo ""
+    echo "${grn}Allowed to provide the name CM_BUILDTYPE${txtrst}"
+    cat allpatches/CM_BUILDTYPE.patch | patch -d $DSTDIR/vendor/cm -p1 -N -r -
+
     ;;
   "MoKee OpenSource")
     echo "${grn}---=== MoKee OpenSource ===---${txtrst}"
