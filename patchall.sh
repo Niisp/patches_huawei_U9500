@@ -20,6 +20,7 @@ echo "${grn}Back porting bluez${txtrst}"
 DISTR=`head -1 $DSTDIR/.repo/manifests/README.*`
 
 case "$DISTR" in
+
   "CyanogenMod")
     echo "${grn}---=== CyanogenMod ===---${txtrst}"
     bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
@@ -40,10 +41,12 @@ case "$DISTR" in
     echo "${grn}Applying BUILD_DISPLAY_ID patch${txtrst}"
     cat allpatches/BUILD_DISPLAY_ID.patch | patch -d $DSTDIR/build -p1 -N -r -
     ;;
+
   "MoKee OpenSource")
     echo "${grn}---=== MoKee OpenSource ===---${txtrst}"
     bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
     ;;
+
   "PAC-man - The AIO ROM")
     echo "${grn}---=== PAC-man - The AIO ROM ===---${txtrst}"
     bluez_port_pac/pac_bluez_patch.sh $DSTDIR
@@ -54,10 +57,7 @@ case "$DISTR" in
     echo "${grn}Applying BUILD_DISPLAY_ID patch${txtrst}"
     cat allpatches/BUILD_DISPLAY_ID.patch | patch -d $DSTDIR/build -p1 -N -r -
     ;;
-  "ChameleonOS")
-    echo "${grn}---=== ChameleonOS ===---${txtrst}"
-    bluez_port_cm101/cm101_bluez_patch.sh $DSTDIR
-    ;;
+
   *)
     echo "${red}*================== Error!!! ================*"
     echo "| Who is here? I do not know what the system |"
