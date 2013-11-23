@@ -35,6 +35,10 @@ case "$DISTR" in
     echo "${grn}Allowed to provide the name CM_BUILDTYPE${txtrst}"
     cat allpatches/CM_BUILDTYPE.patch | patch -d $DSTDIR/vendor/cm -p1 -N -r -
 
+    # Allow to make their BUILD_DISPLAY_ID
+    echo ""
+    echo "${grn}Applying BUILD_DISPLAY_ID patch${txtrst}"
+    cat allpatches/BUILD_DISPLAY_ID.patch | patch -d $DSTDIR/build -p1 -N -r -
     ;;
   "MoKee OpenSource")
     echo "${grn}---=== MoKee OpenSource ===---${txtrst}"
@@ -44,6 +48,11 @@ case "$DISTR" in
     echo "${grn}---=== PAC-man - The AIO ROM ===---${txtrst}"
     bluez_port_pac/pac_bluez_patch.sh $DSTDIR
     cp -f allpatches/cm_frameworks_config_overlay.xml $DSTDIR/vendor/cm/overlay/common/frameworks/base/core/res/res/values/config.xml
+
+    # Allow to make their BUILD_DISPLAY_ID
+    echo ""
+    echo "${grn}Applying BUILD_DISPLAY_ID patch${txtrst}"
+    cat allpatches/BUILD_DISPLAY_ID.patch | patch -d $DSTDIR/build -p1 -N -r -
     ;;
   "ChameleonOS")
     echo "${grn}---=== ChameleonOS ===---${txtrst}"
