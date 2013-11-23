@@ -87,11 +87,6 @@ echo ""
 echo "${grn}Applying Camera patch${txtrst}"
 cat allpatches/Camera.patch | patch -d $DSTDIR/packages/apps/Camera -p1 -N -r -
 
-# SurfaceFlinger patch
-echo ""
-echo "${grn}Applying SurfaceFlinger patch${txtrst}"
-cat allpatches/SurfaceFlinger.patch | patch -d $DSTDIR/frameworks/native -p1 -N -r -
-
 # WiFi Country patch
 echo ""
 echo "${grn}Applying WiFi Country patch${txtrst}"
