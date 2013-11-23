@@ -36,12 +36,6 @@
 
 #include "liba2dp.h"
 
-#ifdef A2DP_48000_SAMPLE_RATE
-#define A2DP_SAMPLE_RATE 48000
-#else
-#define A2DP_SAMPLE_RATE 44100
-#endif
-
 /* for backward compatibility with older audio framework */
 #ifndef AUDIO_PARAMETER_A2DP_SINK_ADDRESS
     #define AUDIO_PARAMETER_A2DP_SINK_ADDRESS "a2dp_sink_address"
@@ -174,11 +168,11 @@ static audio_format_t out_get_format(const struct audio_stream *stream)
     return out->format;
 }
 
-static audio_format_t out_set_format(struct audio_stream *stream, audio_format_t format)
+static int out_set_format(struct audio_stream *stream, audio_format_t format)
 {
     struct astream_out *out = (struct astream_out *)stream;
     ALOGE("(%s:%d) %s: Implement me!", __FILE__, __LINE__, __func__);
-    return 0;
+    return -ENOSYS;
 }
 
 static int out_dump(const struct audio_stream *stream, int fd)
@@ -213,7 +207,7 @@ static int _out_init_locked(struct astream_out *out, const char *addr)
         return 0;
 
     /* XXX: shouldn't this use the sample_rate/channel_count from 'out'? */
-    ret = a2dp_init(A2DP_SAMPLE_RATE, 2, &out->data);
+    ret = a2dp_init(44100, 2, &out->data);
     if (ret < 0) {
         ALOGE("a2dp_init failed err: %d\n", ret);
         out->data = NULL;
@@ -607,7 +601,7 @@ static int _out_a2dp_suspend(struct astream_out *out, bool suspend)
     return 0;
 }
 
-#ifdef AUDIO_DEVICE_API_VERSION_1_0
+#if defined (AUDIO_DEVICE_API_VERSION_1_0) || defined (AUDIO_DEVICE_API_VERSION_2_0)
 static int adev_open_output_stream(struct audio_hw_device *dev,
                                    audio_io_handle_t handle,
                                    audio_devices_t devices,
@@ -661,7 +655,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     out->stream.write = out_write;
     out->stream.get_render_position = out_get_render_position;
 
-    out->sample_rate = A2DP_SAMPLE_RATE;
+    out->sample_rate = 44100;
     out->buffer_size = 512 * 20;
     out->channels = AUDIO_CHANNEL_OUT_STEREO;
     out->format = AUDIO_FORMAT_PCM_16_BIT;
@@ -677,7 +671,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     out->buffer_duration_us = ((out->buffer_size * 1000 ) /
                                audio_stream_frame_size(&out->stream.common) /
                                out->sample_rate) * 1000;
-#ifdef AUDIO_DEVICE_API_VERSION_1_0
+#if defined (AUDIO_DEVICE_API_VERSION_1_0) || defined (AUDIO_DEVICE_API_VERSION_2_0)
     if (!_out_validate_parms(out, config->format,
                              config->channel_mask,
                              config->sample_rate))
@@ -710,7 +704,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
 
     adev->output = out;
 
-#ifdef AUDIO_DEVICE_API_VERSION_1_0
+#if defined (AUDIO_DEVICE_API_VERSION_1_0) || defined (AUDIO_DEVICE_API_VERSION_2_0)
     config->format = out->format;
     config->channel_mask = out->channels;
     config->sample_rate = out->sample_rate;
@@ -883,7 +877,7 @@ static int adev_get_mic_mute(const struct audio_hw_device *dev, bool *state)
     return -ENOSYS;
 }
 
-#ifdef AUDIO_DEVICE_API_VERSION_1_0
+#if defined (AUDIO_DEVICE_API_VERSION_1_0) || defined (AUDIO_DEVICE_API_VERSION_2_0)
 static size_t adev_get_input_buffer_size(const struct audio_hw_device *dev,
                                          const struct audio_config *config)
 #else
@@ -896,7 +890,7 @@ static size_t adev_get_input_buffer_size(const struct audio_hw_device *dev,
     return 0;
 }
 
-#ifdef AUDIO_DEVICE_API_VERSION_1_0
+#if defined (AUDIO_DEVICE_API_VERSION_1_0) || defined (AUDIO_DEVICE_API_VERSION_2_0)
 static int adev_open_input_stream(struct audio_hw_device *dev,
                                   audio_io_handle_t handle,
                                   audio_devices_t devices,
@@ -961,8 +955,8 @@ static int adev_open(const hw_module_t* module, const char* name,
     adev->output = NULL;
 
     adev->device.common.tag = HARDWARE_DEVICE_TAG;
-#ifdef AUDIO_DEVICE_API_VERSION_1_0
-    adev->device.common.version = AUDIO_DEVICE_API_VERSION_1_0;
+#if defined (AUDIO_DEVICE_API_VERSION_1_0) || defined (AUDIO_DEVICE_API_VERSION_2_0)
+    adev->device.common.version = AUDIO_DEVICE_API_VERSION_CURRENT;
 #else
     adev->device.common.version = 0;
 #endif

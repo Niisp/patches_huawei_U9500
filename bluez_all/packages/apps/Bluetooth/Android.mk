@@ -7,7 +7,9 @@ LOCAL_SRC_FILES := $(call all-subdir-java-files)
 
 LOCAL_PACKAGE_NAME := Bluetooth
 
-LOCAL_JAVA_LIBRARIES := javax.obex telephony-common mms-common
+LOCAL_JAVA_LIBRARIES := javax.obex
+
+LOCAL_JAVA_LIBRARIES += telephony-common mms-common
 
 LOCAL_STATIC_JAVA_LIBRARIES := com.android.vcard
 

@@ -428,7 +428,7 @@ static jint availableNative(JNIEnv *env, jobject obj) {
 static jint readNative(JNIEnv *env, jobject obj, jbyteArray jb, jint offset,
         jint length) {
 #ifdef HAVE_BLUETOOTH
-    ALOGV("%s", __FUNCTION__);
+    //ALOGV("%s", __FUNCTION__);
 
     int ret;
     jbyte *b;
@@ -471,7 +471,7 @@ static jint readNative(JNIEnv *env, jobject obj, jbyteArray jb, jint offset,
 static jint writeNative(JNIEnv *env, jobject obj, jbyteArray jb, jint offset,
         jint length) {
 #ifdef HAVE_BLUETOOTH
-    ALOGV("%s", __FUNCTION__);
+    //ALOGV("%s", __FUNCTION__);
 
     int ret, total;
     jbyte *b;

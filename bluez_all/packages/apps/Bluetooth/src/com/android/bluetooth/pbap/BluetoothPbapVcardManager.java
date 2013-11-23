@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008-2009, Motorola, Inc.
+ * Copyright (C) 2009-2012, Broadcom Corporation
  *
  * All rights reserved.
  *
@@ -43,6 +44,8 @@ import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.PhoneLookup;
+import android.provider.ContactsContract.Preferences;
+import android.provider.Settings;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
@@ -60,6 +63,8 @@ import java.util.ArrayList;
 import javax.obex.ServerOperation;
 import javax.obex.Operation;
 import javax.obex.ResponseCodes;
+
+import com.android.bluetooth.Utils;
 
 public class BluetoothPbapVcardManager {
     private static final String TAG = "BluetoothPbapVcardManager";
@@ -84,12 +89,13 @@ public class BluetoothPbapVcardManager {
 
     static final String[] CONTACTS_PROJECTION = new String[] {
             Contacts._ID, // 0
-            Contacts.DISPLAY_NAME, // 1
+            Contacts.DISPLAY_NAME_PRIMARY, // 1
+            Contacts.DISPLAY_NAME_ALTERNATIVE // 2
     };
 
     static final int CONTACTS_ID_COLUMN_INDEX = 0;
-
-    static final int CONTACTS_NAME_COLUMN_INDEX = 1;
+    static final int CONTACTS_PRIM_NAME_COLUMN_INDEX = 1;
+    static final int CONTACTS_ALT_NAME_COLUMN_INDEX = 2;
 
     // call histories use dynamic handles, and handles should order by date; the
     // most recently one should be the first handle. In table "calls", _id and
@@ -104,7 +110,37 @@ public class BluetoothPbapVcardManager {
         mResolver = mContext.getContentResolver();
     }
 
-    public final String getOwnerPhoneNumberVcard(final boolean vcardType21) {
+    /**
+     * Create an owner vcard from the configured profile
+     * @param vcardType21
+     * @return
+     */
+    private final String getOwnerPhoneNumberVcardFromProfile(final boolean vcardType21, final byte[] filter) {
+        // Currently only support Generic Vcard 2.1 and 3.0
+        int vcardType;
+        if (vcardType21) {
+            vcardType = VCardConfig.VCARD_TYPE_V21_GENERIC;
+        } else {
+            vcardType = VCardConfig.VCARD_TYPE_V30_GENERIC;
+        }
+
+        if (!BluetoothPbapConfig.includePhotosInVcard()) {
+            vcardType |= VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT;
+        }
+
+        return BluetoothPbapUtils.createProfileVCard(mContext, vcardType,filter);
+    }
+
+    public final String getOwnerPhoneNumberVcard(final boolean vcardType21, final byte[] filter) {
+        //Owner vCard enhancement: Use "ME" profile if configured
+        if (BluetoothPbapConfig.useProfileForOwnerVcard()) {
+            String vcard = getOwnerPhoneNumberVcardFromProfile(vcardType21, filter);
+            if (vcard != null && vcard.length() != 0) {
+                return vcard;
+            }
+        }
+        //End enhancement
+
         BluetoothPbapCallLogComposer composer = new BluetoothPbapCallLogComposer(mContext);
         String name = BluetoothPbapService.getLocalPhoneName();
         String number = BluetoothPbapService.getLocalPhoneNum();
@@ -123,7 +159,7 @@ public class BluetoothPbapVcardManager {
                 size = getCallHistorySize(type);
                 break;
         }
-        if (V) Log.v(TAG, "getPhonebookSzie size = " + size + " type = " + type);
+        if (V) Log.v(TAG, "getPhonebookSize size = " + size + " type = " + type);
         return size;
     }
 
@@ -201,9 +237,36 @@ public class BluetoothPbapVcardManager {
         return list;
     }
 
+    private int getDisplayNameColumnIndex() {
+        int order = Settings.System.getInt(mResolver,
+                Preferences.DISPLAY_ORDER, Preferences.DISPLAY_ORDER_PRIMARY);
+
+        return order == Preferences.DISPLAY_ORDER_ALTERNATIVE
+                ? CONTACTS_ALT_NAME_COLUMN_INDEX
+                : CONTACTS_PRIM_NAME_COLUMN_INDEX;
+    }
+
+    private String getDisplayNameColumn() {
+        int order = Settings.System.getInt(mResolver,
+                Preferences.DISPLAY_ORDER, Preferences.DISPLAY_ORDER_PRIMARY);
+
+        return order == Preferences.DISPLAY_ORDER_ALTERNATIVE
+                ? Contacts.DISPLAY_NAME_ALTERNATIVE
+                : Contacts.DISPLAY_NAME_PRIMARY;
+    }
+
     public final ArrayList<String> getPhonebookNameList(final int orderByWhat) {
         ArrayList<String> nameList = new ArrayList<String>();
-        nameList.add(BluetoothPbapService.getLocalPhoneName());
+        //Owner vCard enhancement. Use "ME" profile if configured
+        String ownerName = null;
+        if (BluetoothPbapConfig.useProfileForOwnerVcard()) {
+            ownerName = BluetoothPbapUtils.getProfileName(mContext);
+        }
+        if (ownerName == null || ownerName.length()==0) {
+            ownerName = BluetoothPbapService.getLocalPhoneName();
+        }
+        nameList.add(ownerName);
+        //End enhancement
 
         final Uri myUri = Contacts.CONTENT_URI;
         Cursor contactCursor = null;
@@ -215,12 +278,13 @@ public class BluetoothPbapVcardManager {
             } else if (orderByWhat == BluetoothPbapObexServer.ORDER_BY_ALPHABETICAL) {
                 if (V) Log.v(TAG, "getPhonebookNameList, order by alpha");
                 contactCursor = mResolver.query(myUri, CONTACTS_PROJECTION, CLAUSE_ONLY_VISIBLE,
-                        null, Contacts.DISPLAY_NAME);
+                        null, getDisplayNameColumn());
             }
             if (contactCursor != null) {
+                int nameIndex = getDisplayNameColumnIndex();
                 for (contactCursor.moveToFirst(); !contactCursor.isAfterLast(); contactCursor
                         .moveToNext()) {
-                    String name = contactCursor.getString(CONTACTS_NAME_COLUMN_INDEX);
+                    String name = contactCursor.getString(nameIndex);
                     if (TextUtils.isEmpty(name)) {
                         name = mContext.getString(android.R.string.unknownName);
                     }
@@ -253,9 +317,10 @@ public class BluetoothPbapVcardManager {
                         null, Contacts._ID);
 
             if (contactCursor != null) {
+                int nameIndex = getDisplayNameColumnIndex();
                 for (contactCursor.moveToFirst(); !contactCursor.isAfterLast(); contactCursor
                         .moveToNext()) {
-                    String name = contactCursor.getString(CONTACTS_NAME_COLUMN_INDEX);
+                    String name = contactCursor.getString(nameIndex);
                     long id = contactCursor.getLong(CONTACTS_ID_COLUMN_INDEX);
                     if (TextUtils.isEmpty(name)) {
                         name = mContext.getString(android.R.string.unknownName);
@@ -405,7 +470,7 @@ public class BluetoothPbapVcardManager {
         } else if (orderByWhat == BluetoothPbapObexServer.ORDER_BY_ALPHABETICAL) {
             try {
                 contactCursor = mResolver.query(myUri, CONTACTS_PROJECTION, CLAUSE_ONLY_VISIBLE,
-                        null, Contacts.DISPLAY_NAME);
+                        null, getDisplayNameColumn());
                 if (contactCursor != null) {
                     contactCursor.moveToPosition(offset - 1);
                     contactId = contactCursor.getLong(CONTACTS_ID_COLUMN_INDEX);
@@ -443,9 +508,21 @@ public class BluetoothPbapVcardManager {
                 } else {
                     vcardType = VCardConfig.VCARD_TYPE_V30_GENERIC;
                 }
-                vcardType |= VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT;
 
-                composer = new VCardComposer(mContext, vcardType, true);
+                if (!BluetoothPbapConfig.includePhotosInVcard()) {
+                    vcardType |= VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT;
+                }
+
+                int order = Settings.System.getInt(mResolver,
+                        Preferences.DISPLAY_ORDER, Preferences.DISPLAY_ORDER_PRIMARY);
+                if (order == Preferences.DISPLAY_ORDER_ALTERNATIVE) {
+                    vcardType |= VCardConfig.FLAG_USE_ALTERNATIVE_NAME_ORDERING;
+                }
+
+                //Enhancement: customize Vcard based on preferences/settings and input from caller
+                composer = BluetoothPbapUtils.createFilteredVCardComposer(mContext, vcardType,null);
+                //End enhancement
+
                 // BT does want PAUSE/WAIT conversion while it doesn't want the other formatting
                 // done by vCard library by default.
                 composer.setPhoneNumberTranslationCallback(
@@ -462,8 +539,11 @@ public class BluetoothPbapVcardManager {
                             }
                         });
                 buffer = new HandlerForStringBuffer(op, ownerVCard);
-                if (!composer.init(Contacts.CONTENT_URI, selection, null, Contacts._ID) ||
-                        !buffer.onInit(mContext)) {
+                if (!composer.init(Contacts.CONTENT_URI, CONTACTS_PROJECTION,
+                            selection, null, Contacts._ID, null)) {
+                    return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
+                }
+                if (!buffer.onInit(mContext)) {
                     return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
                 }
 
@@ -479,6 +559,11 @@ public class BluetoothPbapVcardManager {
                                 + composer.getErrorReason());
                         return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
                     }
+                    if (V) {
+                        Log.v(TAG, "Vcard Entry:");
+                        Log.v(TAG,vcard);
+                    }
+
                     if (!buffer.onEntryCreated(vcard)) {
                         // onEntryCreate() already emits error.
                         return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -517,6 +602,11 @@ public class BluetoothPbapVcardManager {
                                 + composer.getErrorReason());
                         return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
                     }
+                    if (V) {
+                        Log.v(TAG, "Vcard Entry:");
+                        Log.v(TAG,vcard);
+                    }
+
                     buffer.onEntryCreated(vcard);
                 }
             } finally {

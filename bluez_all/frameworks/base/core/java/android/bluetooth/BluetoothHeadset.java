@@ -228,6 +228,7 @@ public final class BluetoothHeadset implements BluetoothProfile {
         mContext = context;
         mServiceListener = l;
         mAdapter = BluetoothAdapter.getDefaultAdapter();
+        Log.e(TAG, "Default Adapter name: " + mAdapter.getName());
         if (!context.bindService(new Intent(IBluetoothHeadset.class.getName()), mConnection, 0)) {
             Log.e(TAG, "Could not bind to Bluetooth Headset Service");
         }

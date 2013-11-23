@@ -141,6 +141,10 @@ public class BluetoothTetheringDataTracker implements NetworkStateTracker {
         return true;
     }
 
+    /* TODO */
+    public void captivePortalCheckComplete() {
+    }
+
     /**
      * @return true - If are we currently tethered with another device.
      */
@@ -180,11 +184,6 @@ public class BluetoothTetheringDataTracker implements NetworkStateTracker {
      */
     public int stopUsingNetworkFeature(String feature, int callingPid, int callingUid) {
         return -1;
-    }
-
-    @Override
-    public void captivePortalCheckComplete() {
-        // not implemented
     }
 
     @Override
