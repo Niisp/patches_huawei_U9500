@@ -78,9 +78,9 @@ cp allpatches/geoloc/86_zh $DSTDIR/external/libphonenumber/java/src/com/android/
 cp allpatches/geoloc/PhoneNumberMetadataProto_CN $DSTDIR/external/libphonenumber/java/src/com/android/i18n/phonenumbers/data/PhoneNumberMetadataProto_CN
 
 # EMUI Gallery/Camera patch
-echo ""
-echo "${grn}Applying EMUI Gallery/Camera patch${txtrst}"
-cat allpatches/EMUI_Gallery2.patch | patch -d $DSTDIR/frameworks/base -p1 -N -r -
+#echo ""
+#echo "${grn}Applying EMUI Gallery/Camera patch${txtrst}"
+#cat allpatches/EMUI_Gallery2.patch | patch -d $DSTDIR/frameworks/base -p1 -N -r -
 
 # Camera patch
 echo ""
