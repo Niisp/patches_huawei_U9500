@@ -92,6 +92,11 @@ echo ""
 echo "${grn}Applying WiFi Country patch${txtrst}"
 cat allpatches/WiFi_Country.patch | patch -d $DSTDIR/frameworks/opt/telephony -p1 -N -r -
 
+# Ramdisk patch
+echo ""
+echo "${grn}Applying Ramdisk patch${txtrst}"
+cat allpatches/ramdisk.patch | patch -d $DSTDIR/system/core -p1 -N -r -
+
 # if not removed - there will be errors
 echo ""
 echo "${grn}Remove *.orig files${txtrst}"
