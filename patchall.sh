@@ -103,4 +103,9 @@ echo "${grn}Remove *.orig files${txtrst}"
 rm -f $DSTDIR/frameworks/base/core/res/res/values/*.orig
 rm -f $DSTDIR/frameworks/base/packages/SystemUI/res/layout/*.orig
 
+# Change sounds
+echo ""
+echo "${grn}Change sounds${txtrst}"
+cat allpatches/media.patch | patch -d $DSTDIR/vendor/cm -p1 -N -r -
+
 echo "${grn}Done${txtrst}"
