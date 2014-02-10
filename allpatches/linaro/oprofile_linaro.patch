@@ -1,0 +1,16 @@
+diff --git a/common.mk b/common.mk
+index f5578b1..f0d2c1c 100644
+--- a/common.mk
++++ b/common.mk
+@@ -45,9 +45,11 @@ HAVE_LIBBFD := true
+ common_host_cflags += -DMISSING_MREMAP
+ common_host_ldlibs_libiconv := -liconv
+ else
++ifeq ($(findstring linaro,$(TARGET_TOOLS_PREFIX)),)
+ ifeq ($(HOST_OS)-$(HOST_ARCH),linux-x86)
+ HAVE_LIBBFD := true
+ endif
+ endif
++endif
+ 
+ endif

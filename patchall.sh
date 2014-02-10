@@ -108,4 +108,14 @@ echo ""
 echo "${grn}Change sounds${txtrst}"
 cat allpatches/media.patch | patch -d $DSTDIR/vendor/cm -p1 -N -r -
 
+# linaro toolchain 4.6
+echo ""
+echo "${grn}Copy linaro${txtrst}"
+cp -r linaro-4.6 $DSTDIR/prebuilts/gcc/linux-x86/arm/
+echo "${grn}Apply linaro patch${txtrst}"
+cat allpatches/linaro/linaro.patch | patch -d $DSTDIR/build -p1 -N -r -
+cat allpatches/linaro/oprofile_linaro.patch | patch -d $DSTDIR/external/oprofile -p1 -N -r -
+cat allpatches/linaro/frameworks_rs_linaro.patch | patch -d $DSTDIR/frameworks/rs -p1 -N -r -
+
+echo ""
 echo "${grn}Done${txtrst}"

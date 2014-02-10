@@ -1,0 +1,93 @@
+diff --git a/Android.mk b/Android.mk
+index e169e4e..e62c17c 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -2,6 +2,8 @@
+ LOCAL_PATH:=$(call my-dir)
+ 
+ rs_base_CFLAGS := -Werror -Wall -Wno-unused-parameter -Wno-unused-variable
++# For gcc 4.7, C++11 narrowing is a warning...
++rs_base_CFLAGS += -Wno-error
+ ifeq ($(TARGET_BUILD_PDK), true)
+   rs_base_CFLAGS += -D__RS_PDK__
+ endif
+diff --git a/driver/rsdIntrinsicInlines.h b/driver/rsdIntrinsicInlines.h
+index ab11b4f..79ac2d6 100644
+--- a/driver/rsdIntrinsicInlines.h
++++ b/driver/rsdIntrinsicInlines.h
+@@ -63,7 +63,7 @@ static inline short4 convert_short4(uchar4 i) {
+ }
+ 
+ static inline float4 convert_float4(uchar4 i) {
+-    float4 f4 = {i.x, i.y, i.z, i.w};
++    float4 f4 = {static_cast<float>(i.x), static_cast<float>(i.y), static_cast<float>(i.z), static_cast<float>(i.w)};
+     return f4;
+ }
+ 
+diff --git a/driver/rsdIntrinsicYuvToRGB.cpp b/driver/rsdIntrinsicYuvToRGB.cpp
+index b3fb059..b907b9b 100644
+--- a/driver/rsdIntrinsicYuvToRGB.cpp
++++ b/driver/rsdIntrinsicYuvToRGB.cpp
+@@ -66,7 +66,7 @@ static uchar4 rsYuvToRGBA_uchar4(uchar y, uchar u, uchar v) {
+         p.b = 255;
+     }
+ 
+-    return (uchar4){p.r, p.g, p.b, p.a};
++    return (uchar4){static_cast<uchar>(p.r), static_cast<uchar>(p.g), static_cast<uchar>(p.b), static_cast<uchar>(p.a)};
+ }
+ 
+ 
+diff --git a/driver/rsdIntrinsics_Convolve.S b/driver/rsdIntrinsics_Convolve.S
+index 0bea299..0c6333b 100644
+--- a/driver/rsdIntrinsics_Convolve.S
++++ b/driver/rsdIntrinsics_Convolve.S
+@@ -102,7 +102,7 @@ ENTRY(rsdIntrinsicConvolve3x3_K)
+         vpop            {q4-q7}
+         pop             {r4-r8, r10, r11, lr}
+         bx              lr
+-END(TestConvolveK)
++END(rsdIntrinsicConvolve3x3_K)
+ 
+ /*
+         r0 = dst
+diff --git a/driver/rsdRuntimeStubs.cpp b/driver/rsdRuntimeStubs.cpp
+index 9bd1396..a4e748c 100644
+--- a/driver/rsdRuntimeStubs.cpp
++++ b/driver/rsdRuntimeStubs.cpp
+@@ -541,7 +541,9 @@ unsigned int SC_umodsi3(unsigned int a, unsigned int b) {
+ }
+ 
+ static void SC_debugF(const char *s, float f) {
+-    ALOGD("%s %f, 0x%08x", s, f, *((int *) (&f)));
++    int i;
++    memcpy(&i, &f, sizeof(float));
++    ALOGD("%s %f, 0x%08x", s, f, i);
+ }
+ static void SC_debugFv2(const char *s, float f1, float f2) {
+     ALOGD("%s {%f, %f}", s, f1, f2);
+@@ -562,7 +564,9 @@ static void SC_debugF4(const char *s, float4 f) {
+     ALOGD("%s {%f, %f, %f, %f}", s, f.x, f.y, f.z, f.w);
+ }
+ static void SC_debugD(const char *s, double d) {
+-    ALOGD("%s %f, 0x%08llx", s, d, *((long long *) (&d)));
++    long long ll;
++    memcpy(&ll, &d, sizeof(long long));
++    ALOGD("%s %f, 0x%08llx", s, d, ll);
+ }
+ static void SC_debugFM4v4(const char *s, const float *f) {
+     ALOGD("%s {%f, %f, %f, %f", s, f[0], f[4], f[8], f[12]);
+diff --git a/rsStream.h b/rsStream.h
+index 62bcf94..3f5a77d 100644
+--- a/rsStream.h
++++ b/rsStream.h
+@@ -92,7 +92,9 @@ public:
+     }
+ 
+     void addF(float v) {
+-        uint32_t uintV = *reinterpret_cast<uint32_t*> (&v);
++        uint32_t uintV;
++	memcpy(&uintV, &v, sizeof(uint32_t));
++        //uint32_t uintV = *reinterpret_cast<uint32_t*> (&v);
+         addU32(uintV);
+     }
+     void addI32(int32_t v) {
